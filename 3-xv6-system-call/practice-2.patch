@@ -1,0 +1,152 @@
+diff --git a/.gitignore b/.gitignore
+index 3e2c9de..5bb8d71 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -14,3 +14,7 @@ kernel
+ kernelmemfs
+ mkfs
+ .gdbinit
++
++.directory
++
++.vscode/
+diff --git a/Makefile b/Makefile
+index 09d790c..398cd61 100644
+--- a/Makefile
++++ b/Makefile
+@@ -52,6 +52,7 @@ endif
+ 
+ # If the makefile can't find QEMU, specify its path here
+ # QEMU = qemu-system-i386
++QEMU = qemu-system-x86_64
+ 
+ # Try to infer the correct QEMU
+ ifndef QEMU
+@@ -181,6 +182,7 @@ UPROGS=\
+ 	_usertests\
+ 	_wc\
+ 	_zombie\
++	_testb2\
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+@@ -250,7 +252,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
+ EXTRA=\
+ 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
+ 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+-	printf.c umalloc.c\
++	printf.c umalloc.c testb2.c\
+ 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
+ 	.gdbinit.tmpl gdbutil\
+ 
+diff --git a/syscall.c b/syscall.c
+index ee85261..7be5fb4 100644
+--- a/syscall.c
++++ b/syscall.c
+@@ -103,6 +103,8 @@ extern int sys_unlink(void);
+ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
++extern int sys_papachari(void);
++extern int sys_atta(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -126,6 +128,8 @@ static int (*syscalls[])(void) = {
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_papachari]   sys_papachari,
++[SYS_atta]   sys_atta,
+ };
+ 
+ void
+diff --git a/syscall.h b/syscall.h
+index bc5f356..a91fb9c 100644
+--- a/syscall.h
++++ b/syscall.h
+@@ -20,3 +20,5 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_papachari  22
++#define SYS_atta  23
+diff --git a/sysproc.c b/sysproc.c
+index 0686d29..e54eaed 100644
+--- a/sysproc.c
++++ b/sysproc.c
+@@ -89,3 +89,25 @@ sys_uptime(void)
+   release(&tickslock);
+   return xticks;
+ }
++
++int
++sys_papachari(void) 
++{
++  return 1705039;
++}
++
++int
++sys_atta(void) 
++{
++  int i;
++  int rand = 1705039;
++  int m = 1705039; 
++  int c = 11;
++  int a = 5;
++  int n = 500;
++
++  for (i = 0; i < n + 1; i++)
++    rand = (a*rand + c) % m;
++
++  return rand;
++}
+\ No newline at end of file
+diff --git a/testb2.c b/testb2.c
+new file mode 100644
+index 0000000..bf74951
+--- /dev/null
++++ b/testb2.c
+@@ -0,0 +1,18 @@
++#include "types.h"
++#include "stat.h"
++#include "user.h"
++
++int main() {
++  int stdId = papachari();
++  int rand = atta();
++  int sum = 0, div;
++  
++  for (div = stdId; div > 0; div /= 10)
++    sum += div % 10;
++
++  printf(1, "Id: %d\n", stdId);
++  printf(1, "Sum: %d\n", sum);
++  printf(1, "Random: %d\n", rand);
++  printf(1, "Remainder: %d\n", sum % rand);
++  exit();
++}
+\ No newline at end of file
+diff --git a/user.h b/user.h
+index 4f99c52..6cf8e02 100644
+--- a/user.h
++++ b/user.h
+@@ -23,6 +23,8 @@ int getpid(void);
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int papachari(void);
++int atta(void);
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+diff --git a/usys.S b/usys.S
+index 8bfd8a1..cd0d195 100644
+--- a/usys.S
++++ b/usys.S
+@@ -29,3 +29,5 @@ SYSCALL(getpid)
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(papachari)
++SYSCALL(atta)
